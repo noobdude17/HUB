@@ -1,5 +1,6 @@
 package com.fptu.hubcinemas.model;
 
+import com.fptu.hubcinemas.model.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,8 +14,12 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Entity
-@Table(name = "users")
-public class User {
+@Table(
+        name = "users",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"email"})
+)
+public class UserInfo extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -23,9 +28,6 @@ public class User {
     @UuidGenerator
     @Column(name = "public_id", nullable = false, unique = true, updatable = false)
     private String publicId;
-
-    @Column(name = "username", nullable = false, length = 50)
-    private String username;
 
     @Column(name = "password_hash")
     private String passwordHash;
@@ -46,16 +48,12 @@ public class User {
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
-    @Column(name = "role", nullable = false, length = 20)
+    @Column(nullable = false, length = 20)
     private String role;
 
     @ColumnDefault("1")
     @Column(name = "is_active")
-    private Boolean isActive;
-
-    @ColumnDefault("0")
-    @Column(name = "verified")
-    private Boolean verified;
+    private boolean isActive = true;
 
     @Column(name = "verification_token", length = 255)
     private String verificationToken;
@@ -66,11 +64,13 @@ public class User {
     @Column(name = "reset_password_expiry")
     private Instant resetPasswordExpiry;
 
-    @ColumnDefault("getdate()")
-    @Column(name = "created_at")
-    private Instant createdAt;
-
-    @Column(name = "updated_at")
-    private Instant updatedAt;
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+//    @JsonManagedReference
+//    private List<Booking> bookings = new ArrayList<>();
+//
+//    // favorites
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+//    @JsonIgnore
+//    private Set<TheaterFavorite> favoriteTheaters = new HashSet<>();
 
 }

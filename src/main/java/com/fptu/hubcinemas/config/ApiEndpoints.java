@@ -5,7 +5,7 @@ public final class ApiEndpoints {
     private ApiEndpoints() { /* prevent instantiation */ }
 
     // API base
-    public static final String API_BASE = "/api/v1";
+    private static final String API_BASE = "/api/v1";
 
     // Auth
     public static final String AUTH_BASE = API_BASE + "/auth";
@@ -22,9 +22,10 @@ public final class ApiEndpoints {
 
     // Users
     public static final String USERS = API_BASE + "/users";
-    public static final String USER_BY_USERNAME = USERS + "/{username}";
-    public static final String USER_PROFILE = USER_BY_USERNAME + "/profile";
-    public static final String USER_AVATAR = USER_BY_USERNAME + "/avatar";
+    public static final String USER_BY_ID = USERS + "/{id}";
+    public static final String USER_PROFILE = USER_BY_ID + "/profile";
+    public static final String USER_AVATAR = USER_BY_ID + "/avatar";
+    public static final String USER_UPDATE_PROFILE = USER_PROFILE + "/update";
 
     // Admin
     public static final String ADMIN_BASE = API_BASE + "/admin";

@@ -46,5 +46,16 @@ public class GlobalExceptionHandler {
         ApiError err = new ApiError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal Server Error", ex.getMessage(), request.getRequestURI());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
     }
+
+    @ExceptionHandler(StackOverflowError.class)
+    public ResponseEntity<ApiError> handleStackOverflow(StackOverflowError ex, HttpServletRequest request) {
+        ApiError err = new ApiError(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal Server Error",
+                "Stack overflow detected - likely circular reference in entity relationships",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
+    }
 }
 

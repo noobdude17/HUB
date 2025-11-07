@@ -8,12 +8,16 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
 import java.io.IOException;
 import java.time.Instant;
 import java.util.HashMap;
@@ -23,8 +27,11 @@ import java.util.Map;
 public class SecurityConfig {
 
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final JwtAuthFilter jwtAuthFilter;
 
-    public SecurityConfig(RestAuthenticationEntryPoint restAuthenticationEntryPoint) {
+    public SecurityConfig(RestAuthenticationEntryPoint restAuthenticationEntryPoint,
+                          JwtAuthFilter jwtAuthFilter) {
+        this.jwtAuthFilter = jwtAuthFilter;
         this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
     }
 
@@ -37,7 +44,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // Basic setup: disable CSRF for API, permit auth endpoints, require auth for others.
         http
-            .csrf(csrf -> csrf.disable())
+            .csrf(AbstractHttpConfigurer::disable)
             .exceptionHandling(ex -> ex
                     .authenticationEntryPoint(restAuthenticationEntryPoint)
                     .accessDeniedHandler(accessDeniedHandler())
@@ -46,6 +53,12 @@ public class SecurityConfig {
                 .requestMatchers(ApiEndpoints.AUTH_BASE + "/**").permitAll()
                 .anyRequest().authenticated()
             )
+            // Stateless session (required for JWT)
+            .sessionManagement(sess ->
+                    sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+            // Add JWT filter before Spring Security's default filter
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .httpBasic(Customizer.withDefaults());
 
         return http.build();

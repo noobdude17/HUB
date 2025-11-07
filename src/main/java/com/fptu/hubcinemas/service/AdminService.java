@@ -1,7 +1,7 @@
 package com.fptu.hubcinemas.service;
 
 import com.fptu.hubcinemas.config.DebugModeConfig;
-import com.fptu.hubcinemas.model.User;
+import com.fptu.hubcinemas.model.UserInfo;
 import com.fptu.hubcinemas.repository.UserRepository;
 import com.fptu.hubcinemas.utils.CustomLogger;
 import org.slf4j.LoggerFactory;
@@ -23,25 +23,25 @@ public class AdminService {
         this.userRepository = userRepository;
     }
 
-    public List<User> getAllUsers() {
+    public List<UserInfo> getAllUsers() {
         return userRepository.findAll();
     }
 
-    public List<User> getAllActiveUsers() {
+    public List<UserInfo> getAllActiveUsers() {
         return userRepository.findByIsActiveTrue();
     }
 
-    public Optional<User> findById(Long id){
-        return userRepository.findById(id);
+    public Optional<UserInfo> findByPublicId(String id){
+        return userRepository.findByPublicId(id);
     }
 
-    public User save(User user){
+    public UserInfo save(UserInfo user){
         return userRepository.save(user);
     }
 
     public void deleteUser(Long id) {
         logger.info("Deleting user with id: {}", id);
-        User user = userRepository.findById(id)
+        UserInfo user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
 
         userRepository.deleteById(id);

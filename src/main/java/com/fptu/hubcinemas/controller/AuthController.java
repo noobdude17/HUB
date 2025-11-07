@@ -2,22 +2,25 @@ package com.fptu.hubcinemas.controller;
 
 import com.fptu.hubcinemas.config.ApiEndpoints;
 import com.fptu.hubcinemas.config.DebugModeConfig;
-import com.fptu.hubcinemas.dto.LoginRequestDto;
-import com.fptu.hubcinemas.dto.RegisterRequestDto;
-import com.fptu.hubcinemas.model.User;
-import com.fptu.hubcinemas.model.enums.UserRole;
+import com.fptu.hubcinemas.dto.auth.LoginRequestDto;
+import com.fptu.hubcinemas.dto.auth.LoginResponseDto;
+import com.fptu.hubcinemas.dto.auth.RegisterRequestDto;
+import com.fptu.hubcinemas.model.UserInfo;
+import com.fptu.hubcinemas.repository.UserRepository;
+import com.fptu.hubcinemas.security.JwtService;
 import com.fptu.hubcinemas.service.UserService;
 import com.fptu.hubcinemas.utils.CustomLogger;
 import jakarta.mail.MessagingException;
-import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
 @CrossOrigin
 @RestController
@@ -36,40 +40,52 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public AuthController(AuthenticationManager authenticationManager,
-                          UserService userService) {
+                          UserService userService,
+                          UserRepository userRepository,
+                          PasswordEncoder passwordEncoder,
+                          JwtService jwtService) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     @PostMapping(ApiEndpoints.AUTH_REGISTER)
-    public ResponseEntity<?> registerCustomer(@RequestBody RegisterRequestDto request)
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequestDto request)
             throws MessagingException, IOException {
         logger.info(
-                "Xử lý yêu cầu đăng ký cho username: {}, role: {}",
-                request.getUsername(),
+                "Xử lý yêu cầu đăng ký cho FullName: {}, role: {}",
+                request.getFullName(),
                 request.getRole());
 
         if (!request.getPassword().equals(request.getRetypePassword())) {
-            logger.warn("Mật khẩu không khớp cho username: {}", request.getUsername());
+            logger.warn("Incorrect password for: {}", request.getFullName());
             return ResponseEntity.badRequest().body(Map.of("error", "Mật khẩu không khớp."));
         }
 
         try {
-            User user = userService.registerUser(
-                    request.getUsername(),
+            UserInfo user = userService.registerUser(
+                    request.getFullName(),
                     request.getPassword(),
                     request.getEmail(),
                     request.getRole(),
                     request.getPhoneNumber(),
                     request.getDateOfBirth()
             );
-            String successMessage = user.getRole().equals(UserRole.CUSTOMER.toString()) ?
-                    "Đăng ký thành công. Vui lòng kiểm tra email để xác nhận tài khoản." :
-                    "Đăng ký thành công. Quản trị viên sẽ phê duyệt tài khoản của bạn sớm nhất có thể.";
-            logger.info("Đăng ký thành công cho username: {}", request.getUsername());
-            return ResponseEntity.ok(Map.of("message", successMessage));
+
+            return ResponseEntity.ok(new Object() {
+                public final Long id = user.getId();
+                public final String email = user.getEmail();
+                public final String fullName = user.getFullName();
+                public final String role = user.getRole();
+                public final boolean active = user.isActive();
+            });
 
         } catch (IllegalArgumentException e) {
             logger.error("Đăng ký thất bại: {}", e.getMessage());
@@ -78,32 +94,45 @@ public class AuthController {
     }
 
     @PostMapping(ApiEndpoints.AUTH_LOGIN)
-    public ResponseEntity<?> login(@RequestBody LoginRequestDto request, HttpSession session) {
-        try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-            );
-            SecurityContext securityContext = SecurityContextHolder.getContext();
-            securityContext.setAuthentication(authentication);
-            session.setAttribute("SPRING_SECURITY_CONTEXT", securityContext);
-            if (request.isRememberMe()) {
-                logger.info("Remember Me enabled for username: {}", request.getUsername());
-            }
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDto request) {
+        Optional<UserInfo> userOpt = userRepository.findByEmail(request.getEmail());
 
-            logger.info("Login successful for username: {}", request.getUsername());
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            logger.error("Login failed for username: {}", request.getUsername());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Wrong username or password. Please try again.");
+        if (userOpt.isEmpty()) {
+            throw new BadCredentialsException("Invalid email or password");
         }
+
+        UserInfo user = userOpt.get();
+
+        if (!user.isActive()) {
+            return ResponseEntity.badRequest().body("Account not active or not verified");
+        }
+
+        // Verify password
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
+
+        // Authenticate
+        Authentication auth = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+        );
+        SecurityContext securityContext = SecurityContextHolder.getContext();
+        securityContext.setAuthentication(auth);
+//
+        // Generate JWT
+        String token = jwtService.generateToken(user);
+//
+        // Return response
+        return ResponseEntity.ok(new LoginResponseDto(token));
     }
 
     @PostMapping(ApiEndpoints.AUTH_LOGOUT)
-    public ResponseEntity<?> logout(HttpSession session) {
-        logger.task("Processing logout, session ID: {}", session.getId());
+    public ResponseEntity<?> logout() {
+        logger.task("Processing logout");
         SecurityContextHolder.clearContext();
-        session.invalidate();
-        return ResponseEntity.ok("Logged out successfully.");
+        return ResponseEntity.ok(Map.of(
+                "message", "Logged out successfully",
+                "instruction", "Please remove the token from client storage"
+        ));
     }
 }

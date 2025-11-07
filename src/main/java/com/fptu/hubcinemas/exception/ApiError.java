@@ -1,9 +1,13 @@
 package com.fptu.hubcinemas.exception;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.Instant;
 
+@Getter
+@Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiError {
     private final Instant timestamp = Instant.now();
@@ -19,24 +23,5 @@ public class ApiError {
         this.path = path;
     }
 
-    public Instant getTimestamp() {
-        return timestamp;
-    }
-
-    public int getStatus() {
-        return status;
-    }
-
-    public String getError() {
-        return error;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public String getPath() {
-        return path;
-    }
 }
 

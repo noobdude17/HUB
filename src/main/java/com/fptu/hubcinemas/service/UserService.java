@@ -1,14 +1,14 @@
 package com.fptu.hubcinemas.service;
 
 import com.fptu.hubcinemas.config.DebugModeConfig;
-import com.fptu.hubcinemas.model.User;
+import com.fptu.hubcinemas.model.UserInfo;
 import com.fptu.hubcinemas.model.enums.UserRole;
 import com.fptu.hubcinemas.repository.UserRepository;
 import com.fptu.hubcinemas.utils.CustomLogger;
-import jakarta.mail.MessagingException;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -16,11 +16,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -44,73 +45,71 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public User registerUser(String username,
-                                     String password,
-                                     String email,
-                                     String role,
-                                     String phoneNumber,
-                                     LocalDate dateOfBirth) throws MessagingException, IOException {
+    public UserInfo registerUser(String fullName,
+                             String password,
+                             String email,
+                             String role,
+                             String phoneNumber,
+                             LocalDate dateOfBirth) {
 
-        logger.info("Bắt đầu đăng ký user: username={}, role={}", username, role);
+        logger.info("Bắt đầu đăng ký user: email={}, role={}", email, role);
 
+        // 1️⃣ Validate uniqueness
+        Optional<UserInfo> existing = userRepository.findByEmail(email);
+        if (existing.isPresent()) {
+            throw new IllegalArgumentException("Email already registered");
+        }
 
         // Kiểm tra định dạng email
         if (!role.equals("customer") && (email == null || !EMAIL_PATTERN.matcher(email).matches())) {
-            logger.error("Email cá nhân không hợp lệ: {}", email);
-            throw new IllegalArgumentException("Email cá nhân không hợp lệ.");
+            logger.error("Invalid email: {}", email);
+            throw new IllegalArgumentException("Invalid email.");
         }
 
-        // Kiểm tra username tồn tại
-        if (userRepository.findByUsername(username).isPresent()) {
-            logger.error("Tài khoản đã tồn tại: username={}", username);
-            throw new IllegalArgumentException("Tài khoản đã tồn tại.");
-        }
-
-        // Kiểm tra email tồn tại
-        if (email != null && userRepository.findByEmail(email).isPresent()) {
-            logger.error("Email đã được sử dụng: email={}", email);
-            throw new IllegalArgumentException("Email đã được sử dụng.");
-        }
-
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordHash(passwordEncoder.encode(password));
+        UserInfo user = new UserInfo();
+        user.setFullName(fullName);
         user.setEmail(email);
-        user.setRole(UserRole.CUSTOMER.toString());
         user.setPhoneNumber(phoneNumber);
-        user.setIsActive(true);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setDateOfBirth(dateOfBirth);
+        user.setRole(role);
+        user.setActive(false); // not yet verified
+        user.setCreatedAt(OffsetDateTime.now());
+        user.setUpdatedAt(OffsetDateTime.now());
 
         // Tạo token xác nhận
         String token = UUID.randomUUID().toString();
         user.setVerificationToken(token);
 
         try {
-            User savedUser = userRepository.save(user);
+            UserInfo savedUser = userRepository.save(user);
 
-            savedUser.setVerified(true);
-            savedUser.setIsActive(true);
+            // Kích hoạt user ngay lập tức cho mục đích thử nghiệm
+            savedUser.setActive(true);
             userRepository.save(savedUser);
 
-            logger.info("Đã lưu user vào cơ sở dữ liệu: id={}, username={}, role={}", savedUser.getId(), savedUser.getUsername(), savedUser.getRole());
+            logger.info("New user created: id={}, email={}, role={}",
+                    savedUser.getId(),
+                    savedUser.getEmail(),
+                    savedUser.getRole());
 
             return savedUser;
         } catch (Exception e) {
-            logger.error("Lỗi khi lưu user vào cơ sở dữ liệu: {}", e.getMessage());
-            throw new RuntimeException("Lỗi khi lưu user: " + e.getMessage());
+            logger.error("Error creating user: {}", e.getMessage());
+            throw new RuntimeException("Error creating user: " + e.getMessage());
         }
     }
 
     public boolean resetPassword(String token, String newPassword) {
         logger.info("Processing password reset with token: {}", token);
 
-        User user = userRepository.findByResetPasswordToken(token);
+        UserInfo user = userRepository.findByResetPasswordToken(token);
         if (user != null && user.getResetPasswordExpiry() != null && user.getResetPasswordExpiry().isAfter(Instant.now())) {
             user.setPasswordHash(passwordEncoder.encode(newPassword));
             user.setResetPasswordToken(null);
             user.setResetPasswordExpiry(null);
-            user.setUpdatedAt(Instant.now());
             userRepository.save(user);
-            logger.info("Password reset successful for user: {}", user.getUsername());
+            logger.info("Password reset successful for user: {}", user.getEmail());
             return true;
         }
 
@@ -118,9 +117,9 @@ public class UserService implements UserDetailsService {
         return false;
     }
 
-    public User updateUserProfile(String username, String fullName, String dateOfBirth, String phoneNumber) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with username: " + username));
+    public UserInfo updateUserProfile(String publicId, String fullName, String dateOfBirth, String phoneNumber) {
+        UserInfo user = userRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + publicId));
 
         if (fullName != null) {
             user.setFullName(fullName);
@@ -136,31 +135,26 @@ public class UserService implements UserDetailsService {
             user.setPhoneNumber(phoneNumber);
         }
 
-        user.setUpdatedAt(Instant.now());
         return userRepository.save(user);
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        // Fetch user from the database by email (username)
+        Optional<UserInfo> userInfo = userRepository.findByEmail(email);
 
-        List<GrantedAuthority> authorities = getAuthorities(user);
-
-        return new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
-                user.getPasswordHash(),
-                authorities
-        );
-    }
-
-    private List<GrantedAuthority> getAuthorities(User user) {
-        String role = user.getRole();
-        if (role == null || role.isEmpty()) {
-            return Collections.emptyList();
+        if (userInfo.isEmpty()) {
+            throw new UsernameNotFoundException("User not found with email: " + email);
         }
-        // Ensure role has ROLE_ prefix
-        String prefixed = role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase();
-        return Collections.singletonList(new SimpleGrantedAuthority(prefixed));
+
+        // Convert UserInfo to UserDetails (UserInfoDetails)
+        UserInfo user = userInfo.get();
+
+        // Create authorities from the user's role
+        List<GrantedAuthority> authorities = user.getRole() != null
+                ? List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
+                : Collections.emptyList();
+
+        return new User(user.getEmail(), user.getPasswordHash(), authorities);
     }
 }
