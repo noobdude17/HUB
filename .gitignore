@@ -31,12 +31,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-src/main/resources/application.properties
-
-### Dockerfiles ###
-docker-compose.yml
-Dockerfile
-
-### environment files ###
-.env
