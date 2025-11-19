@@ -1,0 +1,24 @@
+USE CinemaBooking_Backlog;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Roles WHERE Name = 'Admin')
+    INSERT INTO Roles (Name) VALUES ('Admin');
+
+DECLARE @AdminRoleId INT = (SELECT RoleId FROM Roles WHERE Name = 'Admin');
+
+INSERT INTO Users (Email, PasswordHash, FullName, Phone, RoleId, IsActive)
+VALUES (
+    'kiroadmin@gmail.com',
+    '$2a$10$5HHA0YM9VwRfq5DlveZey.saC0STqURFGV.y4QaJ00qxOiEPx2bxO', -- BCrypt for Admin@123
+    N'System Administrator',
+    '0905675437',
+    @AdminRoleId,
+    1
+);
+
+
+USE CinemaBooking_Backlog;
+GO
+IF NOT EXISTS (SELECT 1 FROM Roles WHERE Name = 'User') INSERT INTO Roles (Name) VALUES ('User');
+IF NOT EXISTS (SELECT 1 FROM Roles WHERE Name = 'Staff') INSERT INTO Roles (Name) VALUES ('Staff');
+IF NOT EXISTS (SELECT 1 FROM Roles WHERE Name = 'Admin') INSERT INTO Roles (Name) VALUES ('Admin');

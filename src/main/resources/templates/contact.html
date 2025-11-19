@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liên hệ - HUB</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/styles.css}">
+</head>
+<body class="page-surface">
+<nav class="navbar navbar-expand-lg navbar-dark cinema-navbar py-3">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="/">
+            <img src="https://via.placeholder.com/48x48.png?text=HB" alt="Cinema HUB Logo">
+            <span>HUB</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#cinemaNavContact"
+                aria-controls="cinemaNavContact" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse justify-content-between" id="cinemaNavContact">
+            <ul class="navbar-nav main-nav mb-2 mb-lg-0">
+                <li class="nav-item"><a class="nav-link" href="/">Trang chủ</a></li>
+                <li class="nav-item"><a class="nav-link" href="/">Lịch chiếu</a></li>
+                <li class="nav-item"><a class="nav-link" href="/">Khuyến mãi</a></li>
+                <li class="nav-item"><a class="nav-link" href="/">Giá vé</a></li>
+                <li class="nav-item"><a class="nav-link" href="/">Giới thiệu</a></li>
+            </ul>
+            <div class="auth-buttons d-flex align-items-center">
+                <div id="authActionButtons" class="d-flex gap-2">
+                    <a class="btn btn-outline-light" href="/register">Đăng ký</a>
+                    <a class="btn btn-danger" href="/login">Đăng nhập</a>
+                </div>
+                <div class="user-menu" id="userMenuWrapper">
+                    <button class="user-menu-toggle" id="userMenuToggle" type="button">
+                        <span class="user-avatar" aria-hidden="true"></span>
+                        <span id="userMenuName">Tài khoản</span>
+                        <span class="chevron"></span>
+                    </button>
+                    <div class="user-menu-dropdown" id="userMenuDropdown">
+                        <button data-user-action="profile">Thông tin cá nhân</button>
+                        <button data-user-action="logout">Đăng xuất</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="contact-shell">
+    <h1 class="text-center text-light mb-4">Liên hệ</h1>
+    <section class="contact-section contact-plain">
+        <div class="contact-info">
+            <div class="contact-block">
+                <h5>TRỤ SỞ</h5>
+                <p>FPT Complex Đà Nẵng, Hoà Hải, Ngũ Hành Sơn, Đà Nẵng 550000, Việt Nam</p>
+            </div>
+            <div class="contact-block">
+                <h5>HỖ TRỢ KHÁCH HÀNG</h5>
+                <p>Hotline: <span class="contact-text">0905675437</span></p>
+                <p>Email: <span class="contact-text">kironinja2015@gmail.com</span></p>
+            </div>
+            <div class="contact-block">
+                <h5>LIÊN HỆ QUẢNG CÁO, TỔ CHỨC SỰ KIỆN</h5>
+                <p>Người phụ trách: Trần Minh Huy</p>
+                <p>Email: <span class="contact-text">kironinja2015@gmail.com</span></p>
+            </div>
+            <div class="contact-block">
+                <h5>Kết nối</h5>
+                <div class="footer-social">
+                    <a href="https://www.facebook.com/tran.minhhuy.1420" target="_blank" rel="noopener">
+                        <img src="https://img.icons8.com/color/48/facebook.png" alt="Facebook">
+                    </a>
+                    <a href="https://zalo.me/0905675437" target="_blank" rel="noopener">
+                        <img src="https://img.icons8.com/color/48/zalo.png" alt="Zalo">
+                    </a>
+                    <a href="https://youtube.com/@tranminhhuy8105?si=f16CKc2-fasW0okZ" target="_blank" rel="noopener">
+                        <img src="https://img.icons8.com/color/48/youtube-play.png" alt="YouTube">
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="contact-map">
+            <iframe
+                    src="https://www.google.com/maps?q=FPT+Complex+%C4%90%C3%A0+N%E1%BA%B5ng,+Ho%C3%A0+H%E1%BA%A3i,+Ng%C5%A9+H%C3%A0nh+S%C6%A1n,+%C4%90%C3%A0+N%E1%BA%B5ng+550000,+Vi%E1%BB%87t+Nam&z=17&output=embed"
+                    width="100%" height="420" style="border:0;" allowfullscreen="" loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <div class="footer-links">
+        <a href="/terms">Chính sách</a>
+        <a href="#">Lịch chiếu</a>
+        <a href="#">Giá vé</a>
+        <a href="#">Hỏi đáp</a>
+        <a href="/contact">Liên hệ</a>
+    </div>
+    <div class="footer-social">
+        <a href="https://www.facebook.com/tran.minhhuy.1420" target="_blank" rel="noopener">
+            <img src="https://img.icons8.com/color/48/facebook.png" alt="Facebook">
+        </a>
+        <a href="https://zalo.me/0905675437" target="_blank" rel="noopener">
+            <img src="https://img.icons8.com/color/48/zalo.png" alt="Zalo">
+        </a>
+        <a href="https://youtube.com/@tranminhhuy8105?si=f16CKc2-fasW0okZ" target="_blank" rel="noopener">
+            <img src="https://img.icons8.com/color/48/youtube-play.png" alt="YouTube">
+        </a>
+    </div>
+    <div class="footer-meta">
+        <p>Cơ quan chủ quản: BỘ VĂN HÓA, THỂ THAO VÀ DU LỊCH</p>
+        <p>Bản quyền thuộc Trung tâm Chiếu phim HUB</p>
+        <p>Giấy phép số: 69420/GP- TTĐT ngày 18/11/2025 - Chịu trách nhiệm: Trần Minh Huy – Bridge Software Engineer.</p>
+        <p>Địa chỉ: FPT Complex Đà Nẵng, Hoà Hải, Ngũ Hành Sơn, Đà Nẵng 550000 - Điện thoại: 0905675437</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/auth.js}"></script>
+</body>
+</html>
